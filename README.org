@@ -14,22 +14,21 @@ My email provider comes via O365 and require MFA. This is painful to
 deal with directly with my choice of mail agent (=mu4e=). Instead I
 make use of a separate package =davmail=
 (https://davmail.sourceforge.net/) which deals with all the Microsoft
-requirements, instead providing a localhost server for SMTP, IMAP,
-etc.
+requirements, instead providing a simpler =localhost= server for SMTP,
+IMAP, etc.
 
-One can run =davmail= in server mdoe, but instead I prefer to
-start/stop the server dynamically using this 'Process On Demand' approach.
+One can run =davmail= all the time, but instead I prefer to start/stop
+the server dynamically using this 'Process On Demand' approach.
 
 Whenever I start =mu4e= a hook starts the =davmail= process. Then the
-process is silently stopped via a timer, but only once =mu4e= is no
-longer in use.
+process is silently stopped via a timer, but only once =mu4e= is quit.
 
 * Customisation
 
 - =pod-process-exe= is a string that defines the process to be run. (e.g.  "~/.nix-profile/bin/davmail")
 - =pod-process-options= is a string that defines options passed to the process (e.g. "-server")
 - =pod-timeout-minutes= is an integer that defines an interval (in minutes) that we should use to check if the process can be stopped.
-- =pod-continue-symbol= a symbol that defines a function, which returns false when the the process can be stopped. 
+- =pod-continue-symbol= a symbol that defines a function, which returns false when the process can be stopped. 
 
 * Use-package
 

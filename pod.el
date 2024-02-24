@@ -58,8 +58,8 @@ runs every pod-timeout-minutes."
 	(kill-process "pod-process"))
     ))
 
-;; I can't find any suitable exit hooks in mu4e so a quick hack is to
-;; stop 'davmail' every 5 mins if mu4e is not active
+;; procees is stopped by a timer assuming there are no exit hooks
+;; available
 (run-with-timer 0 (* pod-timeout-minutes 60) 'pod-process-stop)
 
 (provide 'pod)
