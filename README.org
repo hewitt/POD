@@ -1,0 +1,52 @@
+#+TITLE: Process On Demand
+#+AUTHOR: Rich Hewitt
+#+EMAIL: richard.hewitt@manchester.ac.uk
+#+STARTUP: indent
+#+PROPERTY: header-args :results silent
+
+This is a simple elisp package to run a named shell process on demand
+via a definable hook from within =Emacs=. The process is stopped by a
+timeout condition linked to a predicate function.
+
+* Use case
+
+My email provider comes via O365 and require MFA. This is painful to
+deal with directly with my choice of mail agent (=mu4e=). Instead I
+make use of a separate package =davmail=
+(https://davmail.sourceforge.net/) which deals with all the Microsoft
+requirements, instead providing a localhost server for SMTP, IMAP,
+etc.
+
+One can run =davmail= in server mdoe, but instead I prefer to
+start/stop the server dynamically using this 'Process On Demand' approach.
+
+Whenever I start =mu4e= a hook starts the =davmail= process. Then the
+process is silently stopped via a timer, but only once =mu4e= is no
+longer in use.
+
+* Customisation
+
+- =pod-process-exe= is a string that defines the process to be run. (e.g.  "~/.nix-profile/bin/davmail")
+- =pod-process-options= is a string that defines options passed to the process (e.g. "-server")
+- =pod-timeout-minutes= is an integer that defines an interval (in minutes) that we should use to check if the process can be stopped.
+- =pod-continue-symbol= a symbol that defines a function, which returns false when the the process can be stopped. 
+
+* Use-package
+
+Example =use-package= configuration is below. This will start
+=davmail= with the =-server= argument via a hook when =mu4e= is run.
+The =davmail= process will continue to run for as long as =mu4e= is
+available. On exiting =mu4e= the =davmail= process will be stopped by
+the time that runs every 2 minutes. 
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package pod
+    :init
+    (setq pod-process-exe "~/.nix-profile/bin/davmail")
+    (setq pod-process-options "-server")
+    (setq pod-timeout-minutes 2)
+    (setq pod-continue-symbol 'mu4e-running-p)
+    :hook
+    (mu4e-main-mode . pod-process-start))
+#+END_SRC
+
