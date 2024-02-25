@@ -29,12 +29,8 @@ runs every pod-timeout-minutes."
 (defun pod-process-running-p ()
   "Returns true if the process is running."
   (interactive)
-  (if (process-status "pod-process") ; don't check explicitly for 'run'
-      (setq found t)
-    (setq found nil)
-    )
-  found)
-  
+  (process-status "pod-process"))
+
 (defun pod-process-start ()
   "Start process if not already running."
   (interactive)
@@ -49,7 +45,6 @@ runs every pod-timeout-minutes."
 (defun pod-process-stop ()
   "Stop previously started process if pod-continue-p is not true."
   (interactive)
-  ;; 
   (if (pod-continue-p)
       ;; pod-continue-p is still true, not stopping process.
       (message "[debug] pod-continue-p is still true, not stopping process.")
