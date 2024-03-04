@@ -10,25 +10,34 @@ timeout condition linked to a predicate function.
 
 * Use case
 
-My email provider comes via O365 and require MFA. This is painful to
-deal with directly with my choice of mail agent (=mu4e=). Instead I
-make use of a separate package =davmail=
-(https://davmail.sourceforge.net/) which deals with all the Microsoft
-requirements, instead providing a simpler =localhost= server for SMTP,
-IMAP, etc.
+My email comes via O365 and requires MFA. This is painful to deal with
+directly in my choice of mail agent (=mu4e=). Instead I make use of a
+separate package =davmail= (https://davmail.sourceforge.net/), which
+acts as an intermediary to deal with all the Microsoft requirements,
+leaving a simple =localhost= server for SMTP, IMAP, etc to which any
+mail client can then connect to.
 
-One can run =davmail= all the time, but instead I prefer to start/stop
-the server dynamically using this 'Process On Demand' approach.
+Of course one can leave =davmail= running all the time, but instead I
+prefer to start/stop the server dynamically using this 'Process On
+Demand' approach.
 
 Whenever I start =mu4e= a hook starts the =davmail= process. Then the
-process is silently stopped via a timer, but only once =mu4e= is quit.
+process is silently stopped via a timer, but only once =mu4e= is no
+longer running.
 
 * Customisation
 
-- =pod-process-exe= is a string that defines the process to be run. (e.g.  "~/.nix-profile/bin/davmail")
-- =pod-process-options= is a string that defines options passed to the process (e.g. "-server")
-- =pod-timeout-minutes= is an integer that defines an interval (in minutes) that we should use to check if the process can be stopped.
-- =pod-continue-symbol= a symbol that defines a function, which returns false when the process can be stopped. 
+- =pod-process-plist= is a property list in the format
+
+  ( KEY1 ( NAME EXE ARGS TIMEOUT CONTINUE-P )
+    KEY2 ( NAME EXE ARGS TIMEOUT CONTINUE-P )
+    ... )
+
+- =KEY= is a unique identifier for each process.
+- =NAME= is the name to be used when starting the process.
+- =EXE= is the executable path for the process.
+- =TIMEOUT= the process is checked every =TIMEOUT= minutes via a timer.
+- =CONTINUE-P= the timer will stop the process when this predicate function returns false.
 
 * Use-package
 
@@ -40,12 +49,11 @@ the time that runs every 2 minutes.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package pod
-    :init
-    (setq pod-process-exe "~/.nix-profile/bin/davmail")
-    (setq pod-process-options "-server")
-    (setq pod-timeout-minutes 2)
-    (setq pod-continue-symbol 'mu4e-running-p)
+    :load-path "~/.emacs.d/elisp/pod"
+    :config
+    (setq pod-process-plist '(davmail ("dav" "~/.nix-profile/bin/davmail" "-server" 2 mu4e-running-p)))
     :hook
-    (mu4e-main-mode . pod-process-start))
+    (mu4e-main-mode . (lambda() (pod-process-start 'davmail) ))
+    )
 #+END_SRC
 

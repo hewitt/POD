@@ -1,60 +1,66 @@
-(defcustom pod-process-exe ""
-  "The executable for the process to be run by pod-process-start."
-  :type 'string
-  :group 'pod)
+(setq pod-process-plist '())
+(setq pod-timer-plist '(key timer-object))
 
-(defcustom pod-process-options ""
-  "Arguments to be passed to the process executable."
-  :type 'string
-  :group 'pod)
+;; 
+(defun pod-get-entry-list (key)
+  "Return the list associated with this key in the property list."
+  (plist-get pod-process-plist key))
 
-(defcustom pod-timeout-minutes 5
-  "The process will be checked and stopped every pod-timeout-minutes only if
-pod-continue-p is not true."
-  :type 'integer
-  :group 'pod)
+;; define a few functions that identify the list contents in a clearer way
+(defun pod-process-name (key)
+  "Return the 0th entry from the list associated with this KEY. This
+is a unique NAME to identify this process' details in the plist."
+  (nth 0 (pod-get-entry-list key)))
 
-(defcustom pod-continue-symbol ()
-  "When this returns false, the process will be killed via a timer that
-runs every pod-timeout-minutes."
-  :type 'symbol
-  :group 'pod)
+(defun pod-process-exe (key)
+  "Return the 1st entry from the list associated with this KEY. This
+is a string EXE that identifies the executable/path for this
+process."  
+  (nth 1 (pod-get-entry-list key)))
+  
+(defun pod-process-args (key)
+  "Return the 2nd entry from the list associated with this KEY. This
+is the ARGUMENTS string passed to the process."
+  (nth 2 (pod-get-entry-list key)))
 
-(setq pod-wrapped-function (symbol-function pod-continue-symbol))
+(defun pod-process-timeout (key)
+  "Return the 3rd entry from the list associated with this KEY. This
+is the TIMEOUT passed to the process."
+  (nth 3 (pod-get-entry-list key)))
 
-(defun pod-continue-p ()
-  "Continue process if t but kill process every pod-timeout-minutes otherwise."
-  (funcall pod-wrapped-function))
+(defun pod-process-p (key)
+  "Return the 3rd entry from the list associated with this KEY. This
+is a predicate function CONTINUE-P, which when false identifies
+that the process can be halted via the timer."
+  (nth 4 (pod-get-entry-list key)))
 
-(defun pod-process-running-p ()
-  "Returns true if the process is running."
+(defun pod-process-stop (key)
+  "Stop previously started process if pod-continue-p(KEY) is not
+true and pod-process-name(KEY) is not nil (e.g. is running)."
   (interactive)
-  (process-status "pod-process"))
+  (if (or (not (process-status (pod-process-name key))) (funcall (pod-process-p key)))
+      (message "[debug] pod process not running or pod-process-p is true for this process.")    
+    (kill-process (pod-process-name key))
+    (cancel-timer (plist-get pod-timer-plist key))
+    (plist-put pod-timer-plist key nil)
+  ))
 
-(defun pod-process-start ()
-  "Start process if not already running."
+(defun pod-process-start (key)
+  "Start the process identified by KEY if it is not already running.
+Any associated output is directed to the *pod* buffer."
   (interactive)
-  (if (pod-process-running-p) 
-      (message "[debug] pod-process is already running.") ; don't start more than one davmail process
+  (if (process-status (pod-process-name key))
+      (message "[debug] pod process already running")
     ( let ((default-directory "~/"))
-      ;; start-process <my-name-for-process> <buffer name> <program name> <program arguments>
-      (start-process "pod-process" "*pod-process*" pod-process-exe pod-process-options)
+      (start-process (pod-process-name key) "*pod*" (pod-process-exe key) (pod-process-args key))
       )
+    (setq timer-object (run-with-timer 10 (* (pod-process-timeout key) 60) 'pod-process-stop key)) 
+    (plist-put pod-timer-plist key timer-object)
     ))
 
-(defun pod-process-stop ()
-  "Stop previously started process if pod-continue-p is not true."
-  (interactive)
-  (if (pod-continue-p)
-      ;; pod-continue-p is still true, not stopping process.
-      (message "[debug] pod-continue-p is still true, not stopping process.")
-    ;; ELSE stop the process IF it is still running
-    (if (pod-process-running-p)
-	(kill-process "pod-process"))
-    ))
-
-;; procees is stopped by a timer assuming there are no exit hooks
-;; available
-(run-with-timer 0 (* pod-timeout-minutes 60) 'pod-process-stop)
+;; example 
+;(add-hook 'mu4e-main-mode-hook (lambda () ( pod-process-start 'davmail)))
 
 (provide 'pod)
+
+
