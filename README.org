@@ -44,8 +44,9 @@ longer running.
 Example =use-package= configuration is below. This will start
 =davmail= with the =-server= argument via a hook when =mu4e= is run.
 The =davmail= process will continue to run for as long as =mu4e= is
-available. On exiting =mu4e= the =davmail= process will be stopped by
-the time that runs every 2 minutes. 
+running, as determined by =mu4e-running-p=. On exiting =mu4e= the
+=davmail= process will be stopped by the time that runs every 2
+minutes.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package pod
