@@ -25,36 +25,43 @@ Whenever I start =mu4e= a hook starts the =davmail= process. Then the
 process is silently stopped via a timer, but only once =mu4e= is no
 longer running.
 
+When exiting =emacs=, any processes that have not already been stopped
+by the timer will be silently killed with no user interaction.
+
 * Customisation
 
-- =pod-process-plist= is a property list in the format
+- =pod-process-plist= is a plist of plists in the format
 
-  ( KEY1 ( NAME EXE ARGS TIMEOUT CONTINUE-P )
-    KEY2 ( NAME EXE ARGS TIMEOUT CONTINUE-P )
+  ( PROCESS-KEY1 ( :NAME "process name"
+                   :EXE "process executable location"
+                   :ARGS "arguments passed to the executable"
+                   :MINS "timer is run over this period"
+                   :PRED "an elisp function that returns nil when the process can be stopped" )
+    PROCESS-KEY2 ( ... )
     ... )
 
-- =KEY= is a unique identifier for each process.
-- =NAME= is the name to be used when starting the process.
-- =EXE= is the executable path for the process.
-- =TIMEOUT= the process is checked every =TIMEOUT= minutes via a timer.
-- =CONTINUE-P= the timer will stop the process when this predicate function returns false.
-
+- =PROCESS-KEY?= should be a unique identifier for each process.
+  
 * Use-package
 
 Example =use-package= configuration is below. This will start
 =davmail= with the =-server= argument via a hook when =mu4e= is run.
 The =davmail= process will continue to run for as long as =mu4e= is
 running, as determined by =mu4e-running-p=. On exiting =mu4e= the
-=davmail= process will be stopped by the time that runs every 2
+=davmail= process will be stopped by the timer that runs every 2
 minutes.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package pod
     :load-path "~/.emacs.d/elisp/pod"
     :config
-    (setq pod-process-plist '(davmail ("dav" "~/.nix-profile/bin/davmail" "-server" 2 mu4e-running-p)))
+    (setq pod-process-plist '(davmail (:name "dav"
+                                             :exe  "~/.nix-profile/bin/davmail"
+                                             :args "-server"
+                                             :mins 2
+                                             :pred mu4e-running-p)))
     :hook
-    (mu4e-main-mode . (lambda() (pod-process-start 'davmail) ))
+    (mu4e-main-mode . (lambda() (pod-process-start 'davmail))) 
     )
 #+END_SRC
 
